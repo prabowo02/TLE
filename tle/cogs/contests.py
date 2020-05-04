@@ -471,7 +471,7 @@ class Contests(commands.Cog):
         paginator.paginate(self.bot, ctx.channel, pages, wait_time=_STANDINGS_PAGINATE_WAIT_TIME)
 
     @commands.command(brief='Show ranklist for the given vc, considering only the given handles')
-    @commands.has_role('Admin')
+    @commands.has_any_role('Admin', 'Moderator')
     async def vc_ranklist(self, ctx, contest_id: int, *handles: str):
         handles = set(handles)
         if not handles:
@@ -485,7 +485,7 @@ class Contests(commands.Cog):
         await self._ranklist(ctx, contest_id, handles, vc=True)
 
     @commands.command(brief='Start a rated vc.', usage='contest_id duration step handles')
-    @commands.has_role('Admin')
+    @commands.has_any_role('Admin', 'Moderator')
     async def ratedvc(self, ctx, contest_id:int, duration:int, step:int, *handles: str):
         await ctx.send(f'Starting ratedvc {contest_id} with handles: {handles}')
         for _ in range(0, duration, step):
