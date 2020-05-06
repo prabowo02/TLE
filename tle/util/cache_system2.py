@@ -613,12 +613,11 @@ class RanklistCache:
 
     async def generate_vc_ranklist(self, contest_id, handles):
         contest, problems, standings = await cf.contest.standings(contest_id=contest_id,
-                                                                  show_unofficial=True)
+                                                                  show_unofficial=True, handles=list(handles))
         now = time.time()
         standings = [row for row in standings
                     if row.party.participantType == 'VIRTUAL'
                     and row.party.teamId is None
-                    and ((row.party.members[0].handle in handles) or handles is None)
                     ]
 
         handles = [row.party.members[0].handle for row in standings]
