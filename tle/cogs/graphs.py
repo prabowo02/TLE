@@ -18,6 +18,7 @@ from tle.util import codeforces_api as cf
 from tle.util import codeforces_common as cf_common
 from tle.util import discord_common
 from tle.util import graph_common as gc
+from tle.util import tlx_api as tlx
 
 pd.plotting.register_matplotlib_converters()
 
@@ -53,6 +54,25 @@ def _plot_rating(resp, mark='o'):
 
     gc.plot_rating_bg(cf.RATED_RANKS)
     plt.gcf().autofmt_xdate()
+
+def _plot_tlx_rating(resp):
+    for rating_changes in resp:
+        ratings, times = [], []
+        for contest_history in rating_changes:
+            ratings.append(contest_history.rating)
+            times.append(dt.datetime.fromtimestamp(contest_history.time // 1000))
+
+        plt.plot(times,
+                 ratings,
+                 linestyle='-',
+                 marker='o',
+                 markersize=3,
+                 markerfacecolor='white',
+                 markeredgewidth=0.5)
+
+    gc.plot_rating_bg(tlx.RATED_RANKS)
+    plt.gcf().autofmt_xdate()
+
 
 def _classify_submissions(submissions):
     solved_by_type = {sub_type: [] for sub_type in cf.Party.PARTICIPANT_TYPES}
@@ -239,6 +259,35 @@ class Graphs(commands.Cog):
 
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Rating graph on Codeforces')
+        discord_common.attach_image(embed, discord_file)
+        discord_common.set_author_footer(embed, ctx.author)
+        await ctx.send(embed=embed, file=discord_file)
+
+    @plot.command(brief='Plot TLX rating graph', usage='[username]')
+    async def tlxrating(self, ctx, *args: str):
+        """Plots TLX rating graph for the username provided."""
+
+        filt = cf_common.SubFilter()
+        usernames = filt.parse(args)
+
+        resp = [await tlx.rating(username=username) for username in usernames]
+
+        if not any(resp):
+            usernames_str = ', '.join(f'`{username}`' for username in usernames)
+            if len(usernames_str) == 1:
+                message = f'User {usernames_str} is not rated'
+            else:
+                message = f'None of the given users {usernames_str} are rated'
+            raise GraphCogError(message)
+
+        plt.clf()
+        _plot_tlx_rating(resp)
+        current_ratings = [rating_changes[-1].rating if rating_changes else 'Unrated' for rating_changes in resp]
+        labels = [gc.StrWrap(f'{username} ({rating})') for username, rating in zip(usernames, current_ratings)]
+        plt.legend(labels, loc='upper left')
+
+        discord_file = gc.get_current_figure_as_file()
+        embed = discord_common.cf_color_embed(title='Rating graph on TLX')
         discord_common.attach_image(embed, discord_file)
         discord_common.set_author_footer(embed, ctx.author)
         await ctx.send(embed=embed, file=discord_file)

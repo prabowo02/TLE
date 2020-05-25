@@ -16,10 +16,10 @@ from tle.util import discord_common
 from tle.util import table
 from tle.util import graph_common as gc
 
-_DUEL_INVALIDATE_TIME = 2 * 60
+_DUEL_INVALIDATE_TIME = 30
 _DUEL_EXPIRY_TIME = 5 * 60
 _DUEL_RATING_DELTA = -400
-_DUEL_NO_DRAW_TIME = 10 * 60
+_DUEL_NO_DRAW_TIME = 1 * 60
 _ELO_CONSTANT = 60
 
 DuelRank = namedtuple('Rank', 'low high title title_abbr color_graph color_embed')

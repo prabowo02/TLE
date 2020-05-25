@@ -6,10 +6,12 @@ from aiocache import cached
 from collections import defaultdict
 from discord.ext import commands
 
+from tle.util import atcoder_api as atc
 from tle.util import codeforces_common as cf_common
 from tle.util import codeforces_api as cf
 from tle.util import events
 from tle.util import tasks
+from tle.util import tlx_api as tlx
 from tle.util.ranklist import Ranklist
 
 logger = logging.getLogger(__name__)
@@ -107,6 +109,8 @@ class ContestCache:
 
     async def _reload_contests(self):
         contests = await cf.contest.list()
+        contests.extend(await atc.contests())
+        contests.extend(await tlx.contests())
         delay = await self._update(contests)
         return delay
 
@@ -118,10 +122,17 @@ class ContestCache:
             rc = self.cache_master.conn.cache_contests(contests)
             self.logger.info(f'{rc} contests stored in database')
 
+            # This is to fetch data that is added to the db manually
+            contests = sorted(self.cache_master.conn.fetch_contests(),
+                              key=lambda contest: (contest.startTimeSeconds, contest.id))
+
         contests_by_phase = {phase: [] for phase in cf.Contest.PHASES}
         contests_by_phase['_RUNNING'] = []
         contest_by_id = {}
         for contest in contests:
+            if contest.phase == 'BEFORE' and contest.startTimeSeconds < time.time():
+                # A hack to support contests other than CF
+                continue
             contests_by_phase[contest.phase].append(contest)
             contest_by_id[contest.id] = contest
             if contest.phase in self._RUNNING_PHASES:

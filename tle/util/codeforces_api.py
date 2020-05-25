@@ -15,6 +15,8 @@ CONTESTS_BASE_URL = 'https://codeforces.com/contests/'
 GYM_BASE_URL = 'https://codeforces.com/gym/'
 PROFILE_BASE_URL = 'https://codeforces.com/profile/'
 ACMSGURU_BASE_URL = 'https://codeforces.com/problemsets/acmsguru/'
+ATCODER_CONTESTS_BASE_URL = 'https://atcoder.jp/contests/'
+GCJ_URL = 'https://codingcompetitions.withgoogle.com/codejam'
 GYM_ID_THRESHOLD = 100000
 DEFAULT_RATING = 1500
 MAX_HANDLES_PER_QUERY = 300 # To avoid sending too large requests.
@@ -84,6 +86,18 @@ class Contest(namedtuple('Contest', 'id name startTimeSeconds durationSeconds ty
 
     @property
     def register_url(self):
+        if self.type == 'AtCoder':
+            if 'Grand' in self.name:
+                return ATCODER_CONTESTS_BASE_URL + 'agc{:03d}'.format(self.id % 10000)
+            if 'Regular' in self.name:
+                return ATCODER_CONTESTS_BASE_URL + 'arc{:03d}'.format(self.id % 10000)
+            if 'Beginner' in self.name:
+                return ATCODER_CONTESTS_BASE_URL + 'abc{:03d}'.format(self.id % 10000)
+            else:
+                return ''
+        elif self.type == 'GCJ':
+            return GCJ_URL
+        elif
         return f'{CONTESTS_BASE_URL}{self.id}'
 
     def matches(self, markers):

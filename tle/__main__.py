@@ -14,6 +14,8 @@ from tle import constants
 from tle.util import font_downloader
 from tle.util import codeforces_common as cf_common
 from tle.util import discord_common
+from tle.util.tlx_api import initialize as tlx_init
+from tle.util.atcoder_api import initialize as atc_init
 
 
 def setup():
@@ -71,6 +73,8 @@ def main():
     @bot.event
     async def on_ready():
         await cf_common.initialize(args.nodb)
+        await tlx_init()
+        await atc_init()
         asyncio.create_task(discord_common.presence(bot))
 
     bot.add_listener(discord_common.bot_error_handler, name='on_command_error')

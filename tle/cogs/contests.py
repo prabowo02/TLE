@@ -55,7 +55,7 @@ def _get_formatted_contest_desc(id_str, start, duration, url, max_duration_len):
 
 
 def _get_embed_fields_from_contests(contests):
-    infos = [(contest.name, str(contest.id), _contest_start_time_format(contest, dt.timezone.utc),
+    infos = [(contest.name, str(contest.id), _contest_start_time_format(contest, dt.timezone(dt.timedelta(hours=7), 'WIB')),
               _contest_duration_format(contest), contest.register_url)
              for contest in contests]
 
