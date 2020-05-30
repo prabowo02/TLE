@@ -12,6 +12,7 @@ from tle.util import codeforces_api as cf
 from tle.util import events
 from tle.util import tasks
 from tle.util import tlx_api as tlx
+from tle.util.codeforces_api import Contest
 from tle.util.ranklist import Ranklist
 
 logger = logging.getLogger(__name__)
@@ -109,9 +110,16 @@ class ContestCache:
 
     async def _reload_contests(self):
         contests = await cf.contest.list()
-        for atc_contest in await atc.contests():
-            atc_contest.id = self.cache_master.conn.get_contest_id(atc_contest.id)
-            contests.append(atc_contest)
+        for entry in await atc.contests():
+            contests.append(Contest(
+                id=self.cache_master.conn.get_contest_id(entry['id']),
+                name=entry['title'].replace('◉', '').strip(),
+                startTimeSeconds=entry['startTimeSeconds'],
+                durationSeconds=entry['durationSeconds'],
+                type='AtCoder' + entry['id'],
+                phase='BEFORE',
+                preparedBy=None,
+            ))
         contests.extend(await atc.contests())
         contests.extend(await tlx.contests())
         delay = await self._update(contests)

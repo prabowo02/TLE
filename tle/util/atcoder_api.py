@@ -6,8 +6,6 @@ import aiohttp
 
 from discord.ext import commands
 
-from tle.util.codeforces_api import Contest
-
 
 API_BASE_URL = 'https://atcoder-api.appspot.com/'
 CONTESTS_URL = 'contests'
@@ -75,16 +73,7 @@ async def contests():
     resp = await _query_api(CONTESTS_URL)
     parsed_contests = []
     for entry in resp:
-        parsed_contests.append(Contest(
-            id=entry['id'],
-            name=entry['title'].replace('◉', '').strip(),
-            startTimeSeconds=entry['startTimeSeconds'],
-            durationSeconds=entry['durationSeconds'],
-            type='AtCoder' + entry['id'],
-            phase='BEFORE',
-            preparedBy=None,
-        ))
-        break
+        parsed_contests.append(entry)
 
     return parsed_contests
 
