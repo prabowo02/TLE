@@ -90,7 +90,6 @@ class Contest(namedtuple('Contest', 'id name startTimeSeconds durationSeconds ty
             return ATCODER_CONTESTS_BASE_URL + self.type[len('AtCoder'):]
         elif self.type == 'GCJ':
             return GCJ_URL
-        elif
         return f'{CONTESTS_BASE_URL}{self.id}'
 
     def matches(self, markers):
