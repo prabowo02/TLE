@@ -12,8 +12,8 @@ def fetch_all_contests():
 
 
 def get_contest_id(name):
-    conn.execute('INSERT OR REPLACE INTO contest_id_map(oj_id, link) '
-                 'VALUES(?, ?)', (name,))
+    conn.execute('INSERT OR REPLACE INTO contest_id_map(oj_id) '
+                 'VALUES(?)', (name,))
     return conn.execute('SELECT id FROM contest_id_map WHERE oj_id = ?', (name,)).fetchone()[0]
 
 
@@ -40,7 +40,7 @@ def create_contest_id_table():
             oj_id VARCHAR(100) UNIQUE
         )
     ''')
-    conn.execute('INSERT INTO contest_id_map VALUES(9999, "", "")')
+    conn.execute('INSERT INTO contest_id_map VALUES(9999, "")')
 
 
 def remove_non_cf_contests():
