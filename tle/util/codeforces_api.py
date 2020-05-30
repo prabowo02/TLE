@@ -86,15 +86,8 @@ class Contest(namedtuple('Contest', 'id name startTimeSeconds durationSeconds ty
 
     @property
     def register_url(self):
-        if self.type == 'AtCoder':
-            if 'Grand' in self.name:
-                return ATCODER_CONTESTS_BASE_URL + 'agc{:03d}'.format(self.id % 10000)
-            if 'Regular' in self.name:
-                return ATCODER_CONTESTS_BASE_URL + 'arc{:03d}'.format(self.id % 10000)
-            if 'Beginner' in self.name:
-                return ATCODER_CONTESTS_BASE_URL + 'abc{:03d}'.format(self.id % 10000)
-            else:
-                return ''
+        if self.type.startswith('AtCoder'):
+            return ATCODER_CONTESTS_BASE_URL + self.type[len('AtCoder'):]
         elif self.type == 'GCJ':
             return GCJ_URL
         elif

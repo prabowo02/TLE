@@ -25,24 +25,6 @@ RATED_RANKS = (
 
 RatingChange = namedtuple('RatingChange', 'rating time')
 
-ATCODER_CONTEST_STYLES = [
-    {
-        'name': 'AtCoder Grand Contest {:03d}',
-        'pattern': re.compile(r'agc(\d{3})'),
-        'start_id': 30000,
-    },
-    {
-        'name': 'AtCoder Regular Contest {:03d}',
-        'pattern': re.compile(r'arc(\d{3})'),
-        'start_id': 20000,
-    },
-    {
-        'name': 'AtCoder Beginner Contest {:03d}',
-        'pattern': re.compile(r'abc(\d{3})'),
-        'start_id': 10000,
-    },
-]
-
 
 class AtcoderApiError(commands.CommandError):
     """Base class for all API related errors."""
@@ -93,22 +75,16 @@ async def contests():
     resp = await _query_api(CONTESTS_URL)
     parsed_contests = []
     for entry in resp:
-        for contest_style in ATCODER_CONTEST_STYLES:
-            match = contest_style['pattern'].match(entry['id'])
-            if not match:
-                continue
-
-            contest_number = int(match.group(1))
-            parsed_contests.append(Contest(
-                id=contest_style['start_id'] + contest_number,
-                name=contest_style['name'].format(contest_number),
-                startTimeSeconds=entry['startTimeSeconds'],
-                durationSeconds=entry['durationSeconds'],
-                type='AtCoder',
-                phase='BEFORE',
-                preparedBy=None,
-            ))
-            break
+        parsed_contests.append(Contest(
+            id=entry['id'],
+            name=entry['title'].replace('◉', '').strip(),
+            startTimeSeconds=entry['startTimeSeconds'],
+            durationSeconds=entry['durationSeconds'],
+            type='AtCoder' + entry['id'],
+            phase='BEFORE',
+            preparedBy=None,
+        ))
+        break
 
     return parsed_contests
 
