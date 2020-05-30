@@ -12,7 +12,7 @@ def fetch_all_contests():
 
 
 def get_contest_id(name):
-    conn.execute('INSERT OR REPLACE INTO contest_id_map(oj_id) '
+    conn.execute('INSERT OR IGNORE INTO contest_id_map(oj_id) '
                  'VALUES(?)', (name,))
     return conn.execute('SELECT id FROM contest_id_map WHERE oj_id = ?', (name,)).fetchone()[0]
 
@@ -34,8 +34,9 @@ def add_contests():
 
 
 def create_contest_id_table():
+    conn.execute('DROP TABLE IF EXISTS contest_id_map')
     conn.execute('''
-        CREATE TABLE IF NOT EXISTS contest_id_map (
+        CREATE TABLE contest_id_map (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             oj_id VARCHAR(100) UNIQUE
         )

@@ -90,7 +90,7 @@ class CacheDbConn:
         return [cf.Contest._make(contest) for contest in res]
 
     def get_contest_id(self, name):
-        self.conn.execute('INSERT OR REPLACE INTO contest_id_map(oj_id) '
+        self.conn.execute('INSERT OR IGNORE INTO contest_id_map(oj_id) '
                           'VALUES(?)', (name,))
         ret = self.conn.execute('SELECT id FROM contest_id_map WHERE oj_id = ?', (name,)).fetchone()[0]
         self.conn.commit()
