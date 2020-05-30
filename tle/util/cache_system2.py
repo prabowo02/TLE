@@ -120,7 +120,6 @@ class ContestCache:
                 phase='BEFORE',
                 preparedBy=None,
             ))
-        contests.extend(await atc.contests())
         contests.extend(await tlx.contests())
         delay = await self._update(contests)
         return delay
