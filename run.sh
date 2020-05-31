@@ -6,11 +6,12 @@ cd "$(dirname "$0")"
 [ -e environment ] && . ./environment
 
 while true; do
-    git pull
-    poetry install
-    FONTCONFIG_FILE=$PWD/extra/fonts.conf poetry run python -m tle
+    # git pull
+    # poetry install
+    # FONTCONFIG_FILE=$PWD/extra/fonts.conf poetry run python -m tle
 
-    (( $? != 42 )) && break
+    poetry run python -m tle
+    # (( $? == 0 )) && break
 
     echo '==================================================================='
     echo '=                       Restarting                                ='
