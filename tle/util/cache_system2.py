@@ -110,16 +110,17 @@ class ContestCache:
 
     async def _reload_contests(self):
         contests = await cf.contest.list()
-        for entry in await atc.contests():
-            contests.append(Contest(
-                id=self.cache_master.conn.get_contest_id(entry['id']),
-                name=entry['title'].replace('◉', '').strip(),
-                startTimeSeconds=entry['startTimeSeconds'],
-                durationSeconds=entry['durationSeconds'],
-                type='AtCoder' + entry['id'],
-                phase='BEFORE',
-                preparedBy=None,
-            ))
+        if False:
+            for entry in await atc.contests():
+                contests.append(Contest(
+                    id=self.cache_master.conn.get_contest_id(entry['id']),
+                    name=entry['title'].replace('◉', '').strip(),
+                    startTimeSeconds=entry['startTimeSeconds'],
+                    durationSeconds=entry['durationSeconds'],
+                    type='AtCoder' + entry['id'],
+                    phase='BEFORE',
+                    preparedBy=None,
+                ))
         contests.extend(await tlx.contests())
         delay = await self._update(contests)
         return delay
