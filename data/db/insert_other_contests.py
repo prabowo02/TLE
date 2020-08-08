@@ -17,19 +17,19 @@ def get_contest_id(name):
     return conn.execute('SELECT id FROM contest_id_map WHERE oj_id = ?', (name,)).fetchone()[0]
 
 
-def add_contest_to_db(name, start_time, duration):
+def add_contest_to_db(name, start_time, duration, contest_type=None):
     conn.execute(
         'INSERT OR REPLACE INTO contest(id, name, start_time, duration, type, phase, prepared_by)'
         'VALUES(?, ?, ?, ?, ?, ?, ?)',
-        (get_contest_id(name), name, start_time, duration, 'Others', 'BEFORE', None)
+        (get_contest_id(name), name, start_time, duration, contest_type if contest_type else 'Others', 'BEFORE', None)
     )
 
 
 def add_contests():
     add_contest_to_db(
         'Google Code Jam 2020 Round 3',
-        int(datetime.datetime(year=2020, month=6, day=6, hour=22).timestamp()),
-        150*60,
+        int(datetime.datetime(year=2020, month=6, day=6, hour=14).timestamp()),
+        150*60, 'GCJ'
     )
 
 
@@ -49,8 +49,8 @@ def remove_non_cf_contests():
 
 
 if __name__ == '__main__':
-    remove_non_cf_contests()
-    create_contest_id_table()
+    # remove_non_cf_contests()
+    # create_contest_id_table()
     add_contests()
 
     conn.commit()
