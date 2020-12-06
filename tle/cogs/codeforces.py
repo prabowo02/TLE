@@ -30,13 +30,6 @@ class Codeforces(commands.Cog):
         self.bot = bot
         self.converter = commands.MemberConverter()
 
-    @commands.command(brief='update status, mark guild members as active')
-    @commands.has_role('Admin')
-    async def _updatestatus(self, ctx):
-        active_ids = [m.id for m in ctx.guild.members]
-        rc = cf_common.user_db.update_status(active_ids)
-        await ctx.send(f'{rc} members active with handle')
-
     async def _validate_gitgud_status(self, ctx, delta):
         if delta is not None and delta % 100 != 0:
             raise CodeforcesCogError('Delta must be a multiple of 100.')
@@ -369,7 +362,8 @@ class Codeforces(commands.Cog):
         recommendations = list(recommendations)
         random.shuffle(recommendations)
         contests = [cf_common.cache2.contest_cache.get_contest(contest_id) for contest_id in recommendations[:5]]
-        msg = '\n'.join(f'{i+1}. [{c.name}]({c.url})' for i, c in enumerate(contests))
+        msg = '\n'.join(f'{i+1}. [{c.name}]({c.url}) {cf_common.pretty_time_format(c.durationSeconds)}'
+                        for i, c in enumerate(contests))
         embed = discord_common.cf_color_embed(description=msg)
         str_handles = '`, `'.join(handles)
         await ctx.send(f'Recommended contest(s) for `{str_handles}`', embed=embed)
