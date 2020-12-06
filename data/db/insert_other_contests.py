@@ -45,12 +45,12 @@ def create_contest_id_table():
 
 
 def remove_non_cf_contests():
-    conn.execute('DELETE FROM contest WHERE id >= 10000 AND id < 60000')
+    conn.execute('DELETE FROM contest WHERE id >= 10000')
 
 
 if __name__ == '__main__':
-    # remove_non_cf_contests()
+    remove_non_cf_contests()
     # create_contest_id_table()
-    add_contests()
+    # add_contests()
 
     conn.commit()
