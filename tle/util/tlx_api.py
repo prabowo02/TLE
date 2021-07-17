@@ -7,7 +7,7 @@ from discord.ext import commands
 from tle.util.codeforces_api import Contest
 
 
-API_BASE_URL = 'https://uriel.tlx.toki.id/api/'
+API_BASE_URL = 'https://api.tlx.toki.id/'
 CONTEST_HISTORY_URL = 'v2/contest-history/public/'
 ACTIVE_CONTEST_URL = 'v2/contests/active'
 
