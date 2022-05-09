@@ -40,24 +40,29 @@ def nice_sub_type(types):
                 'PRACTICE':'Practice: {}'}
     return [nice_map[t] for t in types]
 
-def _plot_rating(resp, mark='o'):
-
-    for rating_changes in resp:
-        ratings, times = [], []
-        for rating_change in rating_changes:
-            ratings.append(rating_change.newRating)
-            times.append(dt.datetime.fromtimestamp(rating_change.ratingUpdateTimeSeconds))
-
-        plt.plot(times,
+def _plot_rating(plot_data, mark):
+    for ratings, when in plot_data:
+        plt.plot(when,
                  ratings,
                  linestyle='-',
                  marker=mark,
                  markersize=3,
                  markerfacecolor='white',
                  markeredgewidth=0.5)
-
     gc.plot_rating_bg(cf.RATED_RANKS)
+
+def _plot_rating_by_date(resp, mark='o'):
+    def gen_plot_data():
+        for rating_changes in resp:
+            ratings, times = [], []
+            for rating_change in rating_changes:
+                ratings.append(rating_change.newRating)
+                times.append(dt.datetime.fromtimestamp(rating_change.ratingUpdateTimeSeconds))
+            yield (ratings, times)
+
+    _plot_rating(gen_plot_data(), mark)
     plt.gcf().autofmt_xdate()
+
 
 def _plot_tlx_rating(resp):
     for rating_changes in resp:
@@ -76,6 +81,21 @@ def _plot_tlx_rating(resp):
 
     gc.plot_rating_bg(tlx.RATED_RANKS)
     plt.gcf().autofmt_xdate()
+
+
+def _plot_rating_by_contest(resp, mark='o'):
+    def gen_plot_data():
+        for rating_changes in resp:
+            ratings, indices = [], []
+            index = 1
+            for rating_change in rating_changes:
+                ratings.append(rating_change.newRating)
+                indices.append(index)
+                index += 1
+            yield (ratings, indices)
+
+    _plot_rating(gen_plot_data(), mark)
+
 
 
 def _classify_submissions(submissions):
@@ -228,11 +248,11 @@ class Graphs(commands.Cog):
         for name with spaces use "!name with spaces" (with quotes)."""
         await ctx.send_help('plot')
 
-    @plot.command(brief='Plot Codeforces rating graph', usage='[+zoom] [+peak] [handles...] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
+    @plot.command(brief='Plot Codeforces rating graph', usage='[+zoom] [+number] [+peak] [handles...] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
     async def rating(self, ctx, *args: str):
         """Plots Codeforces rating graph for the handles provided."""
 
-        (zoom, peak), args = cf_common.filter_flags(args, ['+zoom' , '+peak'])
+        (zoom, number, peak), args = cf_common.filter_flags(args, ['+zoom' , '+number', '+peak'])
         filt = cf_common.SubFilter()
         args = filt.parse(args)
         handles = args or ('!' + str(ctx.author),)
@@ -265,7 +285,10 @@ class Graphs(commands.Cog):
 
         plt.clf()
         plt.axes().set_prop_cycle(gc.rating_color_cycler)
-        _plot_rating(resp)
+        if number:
+            _plot_rating_by_contest(resp)
+        else:
+            _plot_rating_by_date(resp)
         current_ratings = [rating_changes[-1].newRating if rating_changes else 'Unrated' for rating_changes in resp]
         labels = [gc.StrWrap(f'{handle} ({rating})') for handle, rating in zip(handles, current_ratings)]
         plt.legend(labels, loc='upper left')
@@ -578,7 +601,7 @@ class Graphs(commands.Cog):
         if legend:
             plt.legend(labels, loc='upper left')
         _plot_average(practice, bin_size)
-        _plot_rating(rating_resp, mark='')
+        _plot_rating_by_date(rating_resp, mark='')
 
         # zoom
         ymin, ymax = plt.gca().get_ylim()
@@ -598,7 +621,7 @@ class Graphs(commands.Cog):
         assert ratings, 'Cannot histogram plot empty list of ratings'
 
         assert 100%binsize == 0 # because bins is semi-hardcoded
-        bins = 39*100//binsize
+        bins = 1 + max(ratings) // binsize
 
         colors = []
         low, high = 0, binsize * bins
