@@ -293,6 +293,12 @@ class UserDbConn:
         '''
         return self.conn.execute(query).fetchall()
 
+    def get_gudgitters_last(self, timestamp):
+        query = '''
+            SELECT user_id, rating_delta FROM challenge WHERE finish_time >= ? ORDER BY user_id
+        '''
+        return self.conn.execute(query, (timestamp,)).fetchall()
+
     def howgud(self, user_id):
         query = '''
             SELECT rating_delta FROM challenge WHERE user_id = ? AND finish_time IS NOT NULL

@@ -15,11 +15,13 @@ from tle.util import discord_common
 from tle.util.db.user_db_conn import Gitgud
 from tle.util import paginator
 from tle.util import cache_system2
+from tle.cogs.handles import get_gudgitters_image  # TODO: move this func to util
 
 
 _GITGUD_NO_SKIP_TIME = 60 # 1 Minute
-_GITGUD_SCORE_DISTRIB = (2, 3, 5, 8, 12, 17, 23)
-_GITGUD_MAX_ABS_DELTA_VALUE = 300
+_GITGUD_SCORE_DISTRIB = (2, 3, 5, 8, 12, 17, 23, 30, 38)
+_GITGUD_MAX_NEG_DELTA_VALUE = 300
+_GITGUD_MAX_POS_DELTA_VALUE = 500
 
 
 class CodeforcesCogError(commands.CommandError):
@@ -35,8 +37,8 @@ class Codeforces(commands.Cog):
         if delta is not None and delta % 100 != 0:
             raise CodeforcesCogError('Delta must be a multiple of 100.')
 
-        if delta is not None and abs(delta) > _GITGUD_MAX_ABS_DELTA_VALUE:
-            raise CodeforcesCogError(f'Delta must range from -{_GITGUD_MAX_ABS_DELTA_VALUE} to {_GITGUD_MAX_ABS_DELTA_VALUE}.')
+        if delta is not None and not -_GITGUD_MAX_NEG_DELTA_VALUE <= delta <= _GITGUD_MAX_POS_DELTA_VALUE:
+            raise CodeforcesCogError(f'Delta must range from -{_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.')
 
         user_id = ctx.message.author.id
         active = cf_common.user_db.check_challenge(user_id)
@@ -64,8 +66,8 @@ class Codeforces(commands.Cog):
     @cf_common.user_guard(group='gitgud')
     async def upsolve(self, ctx, choice: int = -1):
         """Request an unsolved problem from a contest you participated in
-        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300
-        points |   2  |   3  |   5  |  8  |  12  |  17  |  23
+        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 | +400 | +500
+        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |  30  |  38
         """
         await self._validate_gitgud_status(ctx,delta=None)
         handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
@@ -77,7 +79,7 @@ class Codeforces(commands.Cog):
         solved = {sub.problem.name for sub in submissions if sub.verdict == 'OK'}
         problems = [prob for prob in cf_common.cache2.problem_cache.problems
                     if prob.name not in solved and prob.contestId in contests
-                    and abs(rating - prob.rating) <= 300]
+                    and not -_GITGUD_MAX_NEG_DELTA_VALUE <= prob.rating - rating <= _GITGUD_MAX_POS_DELTA_VALUE]
 
         if not problems:
             raise CodeforcesCogError('Problems not found within the search parameters')
@@ -221,8 +223,8 @@ class Codeforces(commands.Cog):
     @cf_common.user_guard(group='gitgud')
     async def gitgud(self, ctx, delta: int = 0):
         """Request a problem for gitgud points.
-        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300
-        points |   2  |   3  |   5  |  8  |  12  |  17  |  23
+        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 | +400 | +500
+        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |  30  |  38
         """
         await self._validate_gitgud_status(ctx, delta)
         handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
@@ -333,6 +335,40 @@ class Codeforces(commands.Cog):
             await ctx.send(f'Challenge skip forced.')
         else:
             await ctx.send(f'Failed to force challenge skip.')
+
+    @commands.command(brief="Show gudgitters of the last 30 days", aliases=["recentgitgudders"])
+    async def recentgudgitters(self, ctx):
+        """Show the list of users of gitgud with their scores of the last 30 days."""
+        minimal_finish_time = int(datetime.datetime.now().timestamp())-30*24*60*60
+        results = cf_common.user_db.get_gudgitters_last(minimal_finish_time)
+        res = {}
+        for entry in results:
+            res[entry[0]] = 0
+        for entry in results:
+            res[entry[0]] += _GITGUD_SCORE_DISTRIB[(int(entry[1])+300)//100]
+
+        rankings = []
+        index = 0
+        for user_id, score in sorted(res.items(), key=lambda item: item[1], reverse=True):
+            member = ctx.guild.get_member(int(user_id))
+            if member is None:
+                continue
+            if score > 0:
+                handle = cf_common.user_db.get_handle(user_id, ctx.guild.id)
+                user = cf_common.user_db.fetch_cf_user(handle)
+                if user is None:
+                    continue
+                discord_handle = member.display_name
+                rating = user.rating
+                rankings.append((index, discord_handle, handle, rating, score))
+                index += 1
+            if index == 20:
+                break
+
+        if not rankings:
+            raise HandleCogError('No one has completed a gitgud challenge, send ;gitgud to request and ;gotgud to mark it as complete')
+        discord_file = get_gudgitters_image(rankings)
+        await ctx.send(file=discord_file)
 
     @commands.command(brief='Recommend a contest', usage='[handles...] [+pattern...]')
     async def vc(self, ctx, *args: str):
