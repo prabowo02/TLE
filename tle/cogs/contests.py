@@ -759,7 +759,17 @@ class Contests(commands.Cog):
         indicies = [problem.index for problem in problems]
 
         rating_changes = await cf.contest.ratingChanges(contest_id=contest_id)
-        ratings = [rating.oldRating for rating in rating_changes]
+        ratings = []
+        if len(rating_changes) == 0:
+            current_ratings = cf_common.cache2.rating_changes_cache.handle_rating_cache
+            for row in ranklist:
+                member = row.party.members[0].handle
+                if member in current_ratings:
+                    ratings.append(current_ratings[member])
+                else:
+                    ratings.append(0)
+        else:
+            ratings = [rating.oldRating for rating in rating_changes]
 
         solved = [[] for i in range(100)]
         for row in ranklist:
@@ -788,10 +798,16 @@ class Contests(commands.Cog):
             ans = round(ans+1)
             return ans
 
-        output = ""
+        style = table.Style('{:<}  {:>}  {:>}')
+        t = table.Table(style)
+        t += table.Header('#', 'Official', 'Predicted')
+        t += table.Line()
         for i, index in enumerate(indicies):
-            output += f'{index}: {officialRatings[i]} ({calculateDifficutly(ratings,solved[i])})\n'
-        await ctx.send(output)
+            predicted = calculateDifficutly(ratings, solved[i])
+            t += table.Data(f'{index}', f'{officialRatings[i]}', f'{predicted}')
+        table_str = f'```\n{t}\n```'
+        embed = discord_common.cf_color_embed(description=table_str)
+        await ctx.send(embed=embed)
 
 
     @discord_common.send_error_if(ContestCogError, rl.RanklistError,
