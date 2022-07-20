@@ -750,6 +750,50 @@ class Contests(commands.Cog):
         discord_common.set_author_footer(embed, ctx.author)
         await ctx.send(embed=embed, file=discord_file)
 
+    @commands.command(brief='Estimation of contest problem ratings', aliases=['probrat'], usage='contest_id')
+    async def problemratings(self, ctx, contest_id):
+        """Estimation of contest problem ratings (official ratings and rating estimation)
+        """
+        _, problems, ranklist = await cf.contest.standings(contest_id=contest_id, show_unofficial=False)
+        officialRatings = [problem.rating for problem in problems]
+        indicies = [problem.index for problem in problems]
+
+        rating_changes = await cf.contest.ratingChanges(contest_id=contest_id)
+        ratings = [rating.oldRating for rating in rating_changes]
+
+        solved = [[] for i in range(100)]
+        for row in ranklist:
+            for i, result in enumerate(row.problemResults):
+                solved[i].append(min(result.points, 1))
+
+
+        def calculateDifficutly(ratings, solved):
+            ans = -1000
+
+            def calcProb(dif):
+                prob = 1
+                d = 0
+                for (r, s) in zip(ratings, solved):
+                    p = 1/(1+10**((dif-r)/400))
+                    d += p
+                    if s:
+                        d -= 1
+                    prob *= p if s else (1-p)
+                return d > 0 and prob < 0.95
+            jump = 4096
+            while jump >= 1:
+                if calcProb(ans+jump):
+                    ans += jump
+                jump /= 2
+            ans = round(ans+1)
+            return ans
+
+        output = ""
+        for i, index in enumerate(indicies):
+            output += f'{index}: {officialRatings[i]} ({calculateDifficutly(ratings,solved[i])})\n'
+        await ctx.send(output)
+
+
     @discord_common.send_error_if(ContestCogError, rl.RanklistError,
                                   cache_system2.CacheError, cf_common.ResolveHandleError)
     async def cog_command_error(self, ctx, error):
