@@ -367,6 +367,7 @@ class user:
             f'will be chunkified into {len(chunks)} requests.')
 
         result = []
+        count = 0
         for chunk in chunks:
             params = {'handles': ';'.join(chunk)}
             try:
@@ -378,7 +379,27 @@ class user:
                     raise HandleNotFoundError(e.comment, handle)
                 raise
             result += [make_from_dict(User, user_dict) for user_dict in resp]
-        return result
+            count += len(chunk)
+        logger.info(f"user.info was called for {count} entries and {len(result)} User objects could be created.")
+        return [cf_common.fix_urls(user) for user in result]
+
+    @staticmethod
+    def correct_rating_changes(*, resp):
+        adaptO = [1400, 900, 550, 300, 150, 50]
+        adaptN = [900, 550, 300, 150, 50, 0]
+        for r in resp:
+            if (len(r) > 0):
+                if (r[0].newRating <= 1200):
+                    for ind in range(0,(min(6, len(r)))):
+                        r[ind] = RatingChange(r[ind].contestId, r[ind].contestName, r[ind].handle, r[ind].rank, r[ind].ratingUpdateTimeSeconds, r[ind].oldRating+adaptO[ind], r[ind].newRating+adaptN[ind])
+                else:
+                    r[0] = RatingChange(r[0].contestId, r[0].contestName, r[0].handle, r[0].rank, r[0].ratingUpdateTimeSeconds, r[0].oldRating+1500, r[0].newRating)
+        for r in resp:
+            oldPerf = 0
+            for ind in range(0,len(r)):
+                r[ind] = RatingChange(r[ind].contestId, r[ind].contestName, r[ind].handle, r[ind].rank, r[ind].ratingUpdateTimeSeconds, oldPerf, r[ind].oldRating + 4*(r[ind].newRating-r[ind].oldRating))
+                oldPerf = r[ind].oldRating + 4*(r[ind].newRating-r[ind].oldRating)
+        return resp
 
     @staticmethod
     async def rating(*, handle):
@@ -424,55 +445,20 @@ class user:
         return [make_from_dict(Submission, submission_dict) for submission_dict in resp]
 
 
-async def _needs_fixing(handles):
-    to_fix = []
+async def _resolve_handles(handles):
     chunks = user_info_chunkify(handles)
+    resolved_handles = {}
+
     for handle_chunk in chunks:
         while handle_chunk:
-            try:
-                cf_users = await user.info(handles=handle_chunk)
+            cf_users = await user.info(handles=handle_chunk)
 
-                # Users could still have changed capitalization
-                for handle, cf_user in zip(handle_chunk, cf_users):
-                    assert handle.lower() == cf_user.handle.lower()
-                    if handle != cf_user.handle:
-                        to_fix.append(handle)
-                break
-            except HandleNotFoundError as e:
-                to_fix.append(e.handle)
-                handle_chunk.remove(e.handle)
-    return to_fix
-
-
-async def _resolve_redirect(handle):
-    url = 'http://codeforces.com/profile/' + handle
-    async with _session.head(url) as r:
-        if r.status == 200:
-            return handle
-        if r.status == 302:
-            redirected = r.headers.get('Location')
-            if '/profile/' not in redirected:
-                # Ended up not on profile page, probably invalid handle
-                return None
-            return redirected.split('/profile/')[-1]
-        raise CodeforcesApiError(
-            f'Something went wrong trying to redirect {url}')
-
-
-async def _resolve_handle_mapping(handles_to_fix):
-    redirections = {}
-    failed = []
-    for handle in handles_to_fix:
-        new_handle = await _resolve_redirect(handle)
-        if not new_handle:
-            redirections[handle] = None
-        else:
-            cf_user, = await user.info(handles=[new_handle])
-            redirections[handle] = cf_user
-    return redirections
+            for handle, cf_user in zip(handle_chunk, cf_users):
+                if handle != cf_user.handle:
+                    resolved_handles[handle] = cf_user.handle
+    return resolved_handles
 
 
 async def resolve_redirects(handles):
-    handles_to_fix = await _needs_fixing(handles)
-    handle_mapping = await _resolve_handle_mapping(handles_to_fix)
-    return handle_mapping
+    """Returns a mapping of handles to their resolved CF users."""
+    return await _resolve_handles(handles)

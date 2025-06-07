@@ -750,11 +750,71 @@ class Contests(commands.Cog):
         discord_common.set_author_footer(embed, ctx.author)
         await ctx.send(embed=embed, file=discord_file)
 
+    @commands.command(brief='Estimation of contest problem ratings', aliases=['probrat'], usage='contest_id')
+    async def problemratings(self, ctx, contest_id):
+        """Estimation of contest problem ratings (official ratings and rating estimation)
+        """
+        _, problems, ranklist = await cf.contest.standings(contest_id=contest_id, show_unofficial=False)
+        officialRatings = [problem.rating for problem in problems]
+        indicies = [problem.index for problem in problems]
+
+        rating_changes = await cf.contest.ratingChanges(contest_id=contest_id)
+        ratings = []
+        if len(rating_changes) == 0:
+            current_ratings = cf_common.cache2.rating_changes_cache.handle_rating_cache
+            for row in ranklist:
+                member = row.party.members[0].handle
+                if member in current_ratings:
+                    ratings.append(current_ratings[member])
+                else:
+                    ratings.append(0)
+        else:
+            ratings = [rating.oldRating for rating in rating_changes]
+
+        solved = [[] for i in range(100)]
+        for row in ranklist:
+            for i, result in enumerate(row.problemResults):
+                solved[i].append(min(result.points, 1))
+
+
+        def calculateDifficutly(ratings, solved):
+            ans = -1000
+
+            def calcProb(dif):
+                prob = 1
+                d = 0
+                for (r, s) in zip(ratings, solved):
+                    p = 1/(1+10**((dif-r)/400))
+                    d += p
+                    if s:
+                        d -= 1
+                    prob *= p if s else (1-p)
+                return d > 0 and prob < 0.95
+            jump = 4096
+            while jump >= 1:
+                if calcProb(ans+jump):
+                    ans += jump
+                jump /= 2
+            ans = round(ans+1)
+            return ans
+
+        style = table.Style('{:<}  {:>}  {:>}')
+        t = table.Table(style)
+        t += table.Header('#', 'Official', 'Predicted')
+        t += table.Line()
+        for i, index in enumerate(indicies):
+            predicted = calculateDifficutly(ratings, solved[i])
+            t += table.Data(f'{index}', f'{officialRatings[i]}', f'{predicted}')
+        table_str = f'```\n{t}\n```'
+        embed = discord_common.cf_color_embed(description=table_str)
+        await ctx.send(embed=embed)
+
+
     @discord_common.send_error_if(ContestCogError, rl.RanklistError,
                                   cache_system2.CacheError, cf_common.ResolveHandleError)
     async def cog_command_error(self, ctx, error):
         pass
 
 
-def setup(bot):
-    bot.add_cog(Contests(bot))
+async def setup(bot):
+    await bot.add_cog(Contests(bot))

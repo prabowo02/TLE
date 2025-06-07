@@ -10,7 +10,7 @@ while true; do
     # poetry install
     # FONTCONFIG_FILE=$PWD/extra/fonts.conf poetry run python -m tle
 
-    poetry run python3.7 -m tle
+    poetry run python3.8 -m tle
     # (( $? == 0 )) && break
 
     echo '==================================================================='
