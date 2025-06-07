@@ -611,6 +611,7 @@ class RanklistCache:
         # Exclude PRACTICE and MANAGER
         standings = [row for row in standings
                      if row.party.participantType in ('CONTESTANT', 'OUT_OF_COMPETITION', 'VIRTUAL')]
+        ranklist = None
         if fetch_changes:
             # Fetch final rating changes from CF.
             # For older contests.
@@ -621,12 +622,13 @@ class RanklistCache:
                 is_rated = len(changes) > 0
             except cf.RatingChangesUnavailableError:
                 pass
-            ranklist = Ranklist(contest, problems, standings, now, is_rated=is_rated)
             if is_rated:
+                ranklist = Ranklist(contest, problems, standings, now, is_rated=is_rated)
                 delta_by_handle = {change.handle: change.newRating - change.oldRating
                                    for change in changes}
                 ranklist.set_deltas(delta_by_handle)
-        elif predict_changes:
+        if ranklist is None:
+            # Either predict_changes was true or fetching rating changes failed
             # Rating changes have not been applied yet, predict rating changes.
             # For running/recent contests.
             _, _, standings_official = await cf.contest.standings(contest_id=contest_id)
